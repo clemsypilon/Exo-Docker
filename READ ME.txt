@@ -1,0 +1,66 @@
+Déployer l'application du prof grâce aux dockers
+
+1/ récupérer les fichier du prof grâce a GIT
+	-Créer dossier warrepo
+	- copier le lien
+	- "git clone (coller le lien)" dans warrepo
+	- Déplacer init-db.sql dans warrepo/postgres/
+	- Déplacer dbproject.war dans warrepo/tomcat/
+
+2/ récupérer l'image de tomcat:8-jre8
+	- docker run -d --mytomcat tomcat:8-jre8
+
+3/ récupérer l'image de postgres:9.5
+	- docker run -d --mypostgres postgres:9.5
+
+4/ Créer le Dockerfile de tomcat dans warrepo/tomcat/
+	- Vi Dockerfile :
+======================================
+FROM tomcat:8-jre8
+
+RUN apt-get update && apt-get install -y postgresql-9.5
+
+COPY dbproject.war /usr/local/tomcat/webapps/dbproject.war
+======================================
+
+5/ Lancer le build du Dockerfile
+	- docker build -t tomcat1 .
+
+6/ Créer le Dockerfilede postgres dans warrepo/postgres/
+ - vi Dockerfile
+=======================================
+FROM postgres:9.5
+
+RUN apt-get update
+
+COPY init-db.sql /docker-entrypoint-initdb.d/init-db.sql
+========================================
+
+7/ Lancer le build du Dockerfile:
+	- docker build -t postgres1 .
+
+8/ Lancer les deux containers avec le mapping de ports:
+	- docker run -d --name db -p 9260:5432 -v dbdata:/var/lib/postgresql/data postgres1
+	- docker run -d --name mytomcat --link db -p 9450:8080 tomcat1
+
+9/ A partir d'un navigateur internet, taper : 192.168.99.100:9450/dbproject/accueil.jsp
+
+
+
+-----------------------------------------
+=======================================
+-----------------------------------------
+Mettre les images créées dans le regisetry hub
+
+1/ Se créer un compte sur github.com
+
+2/ Se connecter à partir du docker:
+	- docker login -u clemsypilon
+
+3/ Créer un tag d'une image:
+	- docker tag postgres1 clemsypilon/mypostgres:9.5
+	- docker tag tomcat1 clemsypilon/mytomcat:8-jre8
+
+4/ Mettre l'image sur le docker hub:
+	- docker push clemsypilon/mypostgres:9.5
+	- docker push clemsypilon/mytomcat:8-jre8
